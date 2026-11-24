@@ -12,6 +12,8 @@ Probes run on a decoupled `asyncio` background scheduler bounded by a concurrenc
 - **Turnkey Observability Stack:** Pre-configured Prometheus scrape jobs, 5 alerting rules (`deploy/prometheus/alerts.yml`), and an auto-provisioned Grafana dashboard (`deploy/grafana/`).
 - **Mocked Async Test Suite:** 16 unit and API tests using `pytest-asyncio`, `respx`, and `unittest.mock` with isolated Prometheus registries.
 
+![CI](https://github.com/renohid/netdevops-health-monitor/actions/workflows/ci.yml/badge.svg)
+
 ## Repository Structure
 
 ```text
