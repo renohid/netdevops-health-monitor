@@ -1,0 +1,61 @@
+services:
+  health-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netdevops-health-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./targets.yaml:/app/targets.yaml:ro
+    networks:
+      - netdevops-net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: netdevops-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      health-monitor:
+        condition: service_healthy
+    networks:
+      - netdevops-net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: netdevops-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - netdevops-net
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  netdevops-net:
+    driver: bridge

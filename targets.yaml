@@ -1,0 +1,34 @@
+defaults:
+  interval_seconds: 15
+  timeout_seconds: 5
+  max_concurrency: 20
+
+targets:
+  - name: cloudflare-dns-tls
+    host: 1.1.1.1
+    port: 443
+    checks: [tcp, tls]
+    tags:
+      site: edge-anycast
+      role: dns-resolver
+
+  - name: github-api
+    url: https://www.github.com
+    checks: [http, tls]
+    tags:
+      site: cloud-external
+      role: upstream-api
+
+  - name: google-gateway
+    url: https://google.com
+    checks: [tcp, http, tls]
+    tags:
+      site: cloud-external
+      role: wan-canary
+
+  - name: prometheus-local
+    url: http://prometheus:9090/-/healthy
+    checks: [http]
+    tags:
+      site: docker-local
+      role: observability

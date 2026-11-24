@@ -1,0 +1,53 @@
+groups:
+  - name: netdevops_availability
+    rules:
+      - alert: NetDevOpsExporterDown
+        expr: up{job="netdevops-health-monitor"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NetDevOps Health Monitor exporter unreachable"
+          description: "Prometheus cannot scrape {{ $labels.instance }} for more than 1 minute."
+
+      - alert: NetDevOpsTargetDown
+        expr: netdevops_probe_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.target }} failed {{ $labels.check_type }} check"
+          description: "{{ $labels.target }} ({{ $labels.role }} at {{ $labels.site }}) has been down for over 1 minute."
+
+  - name: netdevops_tls_and_latency
+    rules:
+      - alert: NetDevOpsTLSCertExpiringSoon
+        expr: netdevops_tls_cert_expiry_days < 14 and netdevops_tls_cert_expiry_days >= 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS certificate expiring soon for {{ $labels.target }}"
+          description: "Certificate issued by {{ $labels.issuer }} on {{ $labels.target }} ({{ $labels.site }}) expires in {{ printf \"%.1f\" $value }} days."
+
+      - alert: NetDevOpsTLSCertExpired
+        expr: netdevops_tls_cert_expiry_days < 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TLS certificate EXPIRED for {{ $labels.target }}"
+          description: "Certificate on {{ $labels.target }} ({{ $labels.site }}) expired {{ printf \"%.1f\" $value }} days ago."
+
+      - alert: NetDevOpsHighProbeLatency
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(netdevops_probe_duration_seconds_bucket[5m])) by (le, target, check_type, site)
+          ) > 1.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 probe latency on {{ $labels.target }}"
+          description: "P95 {{ $labels.check_type }} latency for {{ $labels.target }} ({{ $labels.site }}) exceeded 1.5s (current: {{ printf \"%.2f\" $value }}s)."
